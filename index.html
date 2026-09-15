@@ -135,6 +135,7 @@ let currentIndex = 0;
 let results = []; // {num, name, level, points}
 let currentMatches = [];
 let showingFullList = false;
+let responseAttempt = { combinedText: "", attemptNum: 1 };
 
 const LEVEL_POINTS = { Green: 4, LightGreen: 3, Orange: 2, Red: 1 };
 const LEVEL_LABEL  = { Green: "Green — most appropriate", LightGreen: "Light green — intermediate appropriate", Orange: "Orange — intermediate inappropriate", Red: "Red — least appropriate" };
@@ -406,6 +407,7 @@ function renderScenario(){
   updateProgress();
   currentMatches = [];
   showingFullList = false;
+  responseAttempt = { combinedText: "", attemptNum: 1 };
   const s = SCENARIOS[currentIndex];
 
   const videoBlock = s.video ? `
@@ -452,6 +454,11 @@ function toEmbeddableUrl(url){
 function handleSubmitResponse(){
   const text = document.getElementById("responseInput").value.trim();
   if (!text) return;
+  responseAttempt = { combinedText: text, attemptNum: 1 };
+  runMatch(text);
+}
+
+function runMatch(text){
   const s = SCENARIOS[currentIndex];
   const ranked = rankDecisions(text, s.decisions);
   currentMatches = ranked.filter(r=>r.score > 0.04).slice(0,3);
@@ -463,7 +470,6 @@ function handleSubmitResponse(){
 
 function renderMatches(){
   const area = document.getElementById("matchesArea");
-  const s = SCENARIOS[currentIndex];
   const cards = currentMatches.map(m => `
     <button class="match-card" data-index="${m.index}">${escapeHtml(m.decision.decision)}</button>
   `).join("");
@@ -473,7 +479,7 @@ function renderMatches(){
       <h2>Is one of these what you meant?</h2>
       <div class="sub">Pick the closest match to your response.</div>
       ${cards}
-      <button class="fallback-link" id="showAllBtn">None of these — show every option</button>
+      <button class="fallback-link" id="noneBtn">None of these</button>
       <div id="fullListArea"></div>
     </div>
   `;
@@ -481,19 +487,64 @@ function renderMatches(){
   area.querySelectorAll(".match-card").forEach(btn=>{
     btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
   });
-  document.getElementById("showAllBtn").addEventListener("click", toggleFullList);
+  document.getElementById("noneBtn").addEventListener("click", handleNoneClicked);
 }
 
-function toggleFullList(){
-  showingFullList = !showingFullList;
+function handleNoneClicked(){
+  const area = document.getElementById("matchesArea");
+  if (responseAttempt.attemptNum === 1){
+    // First "none of these" — ask for a bit more detail, then re-match.
+    area.innerHTML = `
+      <div class="matches">
+        <h2>Can you give me a little more information?</h2>
+        <div class="sub">Add a bit more detail to your answer and I'll try again.</div>
+        <div class="response-block">
+          <textarea id="moreInfoInput" placeholder="What else would you do, or why?"></textarea>
+          <div class="response-actions">
+            <button class="btn btn-primary" id="moreInfoSubmit">Try again</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById("moreInfoSubmit").addEventListener("click", ()=>{
+      const extra = document.getElementById("moreInfoInput").value.trim();
+      if (!extra) return;
+      responseAttempt.combinedText += " " + extra;
+      responseAttempt.attemptNum = 2;
+      runMatch(responseAttempt.combinedText);
+    });
+    document.getElementById("moreInfoInput").focus();
+  } else {
+    // Second "none of these" — nudge toward the right themes, then show everything.
+    const hint = computeNudgeHint();
+    const s = SCENARIOS[currentIndex];
+    const items = s.decisions.map((d,i)=>`<button class="match-card" data-index="${i}">${escapeHtml(d.decision)}</button>`).join("");
+    area.innerHTML = `
+      <div class="matches">
+        <h2>Here's a nudge</h2>
+        <div class="sub">${hint ? `Think about ${hint}.` : "Have a look through the full list of options below."}</div>
+        <div class="full-list">${items}</div>
+      </div>
+    `;
+    area.querySelectorAll(".match-card").forEach(btn=>{
+      btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
+    });
+  }
+}
+
+function computeNudgeHint(){
+  // Pull thematic hints from the Action Tags of the strongest-ranked decisions so far,
+  // without revealing the actual decision text.
   const s = SCENARIOS[currentIndex];
-  const el = document.getElementById("fullListArea");
-  if (!showingFullList){ el.innerHTML = ""; return; }
-  const items = s.decisions.map((d,i)=>`<button class="match-card" data-index="${i}">${escapeHtml(d.decision)}</button>`).join("");
-  el.innerHTML = `<div class="full-list">${items}</div>`;
-  el.querySelectorAll(".match-card").forEach(btn=>{
-    btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
-  });
+  const ranked = rankDecisions(responseAttempt.combinedText, s.decisions);
+  const tags = [];
+  for (const r of ranked){
+    const tag = (r.decision.tag || "").trim();
+    if (tag && !tags.includes(tag)) tags.push(tag);
+    if (tags.length >= 2) break;
+  }
+  if (tags.length === 0) return "";
+  return tags.map(t => t.toLowerCase()).join(" and ");
 }
 
 function selectDecision(index){
