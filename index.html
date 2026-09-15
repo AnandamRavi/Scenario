@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Point — Leadership Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --paper: #F4EFE3;
+    --paper-raised: #FBF8F0;
+    --ink: #23241F;
+    --ink-soft: #5B5A4F;
+    --rule: #D9D1BC;
+    --navy: #223A3D;
+    --navy-deep: #17282A;
+    --amber: #B4842A;
+    --amber-soft: #E8D6AE;
+    --green: #3E7D4F;
+    --lightgreen: #8FAE5D;
+    --orange: #C97A2B;
+    --red: #B2453A;
+    --radius: 4px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;}
+  ::selection{background:var(--amber-soft);}
+
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px 80px;}
+
+  /* header */
+  header.top{border-bottom:1px solid var(--rule);padding:28px 0 18px;margin-bottom:36px;}
+  .top-row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;}
+  .brand{font-family:'Fraunces',serif;font-weight:500;font-size:1.15rem;color:var(--navy-deep);}
+  .brand span{color:var(--amber);}
+  .progress-label{font-size:0.82rem;color:var(--ink-soft);letter-spacing:0.02em;}
+  .progress-track{height:3px;background:var(--rule);margin-top:14px;border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--navy);transition:width .4s ease;}
+
+  /* setup screen */
+  .setup{padding:40px 0;}
+  .setup h1{font-family:'Fraunces',serif;font-weight:500;font-size:2rem;line-height:1.15;margin:0 0 14px;color:var(--navy-deep);}
+  .setup p{color:var(--ink-soft);max-width:52ch;}
+  .field{margin:26px 0;}
+  .field label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:8px;}
+  .field input[type=text]{width:100%;padding:13px 14px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-raised);font-family:'Inter';font-size:0.95rem;color:var(--ink);}
+  .field input[type=text]:focus{outline:2px solid var(--navy);outline-offset:1px;}
+  .hint{font-size:0.8rem;color:var(--ink-soft);margin-top:8px;}
+  .hint code{background:var(--amber-soft);padding:1px 5px;border-radius:3px;font-size:0.78rem;}
+  .btn{appearance:none;border:none;border-radius:var(--radius);padding:13px 26px;font-family:'Inter';font-size:0.92rem;font-weight:600;cursor:pointer;transition:transform .12s ease, background .15s ease;}
+  .btn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-deep);}
+  .btn-primary:disabled{background:var(--rule);color:var(--ink-soft);cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--navy);}
+  .btn-ghost:hover{background:var(--navy);color:#fff;}
+  .error-box{background:#F6E4DF;border:1px solid var(--red);color:#7A2E22;padding:12px 14px;border-radius:var(--radius);font-size:0.87rem;margin-top:18px;}
+  .loading{color:var(--ink-soft);font-size:0.9rem;margin-top:18px;}
+
+  /* scenario card */
+  .category-tag{display:inline-block;font-size:0.72rem;font-weight:600;letter-spacing:0.03em;color:var(--navy);background:var(--amber-soft);padding:4px 10px;border-radius:12px;margin-bottom:14px;}
+  .scenario-title{font-family:'Fraunces',serif;font-weight:500;font-size:1.7rem;line-height:1.2;margin:0 0 18px;color:var(--navy-deep);}
+  .video-slot{width:100%;aspect-ratio:16/9;background:var(--navy-deep);border-radius:var(--radius);margin-bottom:22px;overflow:hidden;}
+  .video-slot video, .video-slot iframe{width:100%;height:100%;border:0;display:block;}
+  .scenario-text{background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:24px;font-size:0.98rem;white-space:pre-wrap;margin-bottom:26px;}
+
+  .response-block textarea{width:100%;min-height:110px;padding:14px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-raised);font-family:'Inter';font-size:0.95rem;color:var(--ink);resize:vertical;}
+  .response-block textarea:focus{outline:2px solid var(--navy);outline-offset:1px;}
+  .response-block label{display:block;font-weight:600;font-size:0.9rem;margin-bottom:8px;}
+  .response-actions{display:flex;justify-content:flex-end;margin-top:12px;}
+
+  /* candidate matches */
+  .matches{margin-top:30px;}
+  .matches h2{font-family:'Fraunces',serif;font-weight:500;font-size:1.15rem;margin:0 0 4px;color:var(--navy-deep);}
+  .matches .sub{color:var(--ink-soft);font-size:0.85rem;margin-bottom:16px;}
+  .match-card{width:100%;text-align:left;background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;font-family:'Inter';font-size:0.93rem;color:var(--ink);transition:border-color .12s ease, background .12s ease;}
+  .match-card:hover{border-color:var(--navy);background:#fff;}
+  .match-card:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .fallback-link{background:none;border:none;color:var(--navy);text-decoration:underline;font-size:0.86rem;cursor:pointer;padding:4px 0;font-family:'Inter';}
+  .full-list{margin-top:14px;max-height:340px;overflow-y:auto;border:1px solid var(--rule);border-radius:var(--radius);}
+  .full-list .match-card{border:none;border-bottom:1px solid var(--rule);border-radius:0;margin-bottom:0;}
+  .full-list .match-card:last-child{border-bottom:none;}
+
+  /* feedback */
+  .feedback{margin-top:30px;padding:22px 24px;border-radius:var(--radius);border:1px solid var(--rule);background:var(--paper-raised);}
+  .level-chip{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;padding:4px 10px;border-radius:12px;margin-bottom:14px;color:#fff;}
+  .level-green{background:var(--green);}
+  .level-lightgreen{background:var(--lightgreen);color:#233;}
+  .level-orange{background:var(--orange);}
+  .level-red{background:var(--red);}
+  .chosen-decision{font-weight:600;margin-bottom:10px;font-size:0.98rem;}
+  .feedback-text{color:var(--ink-soft);font-size:0.94rem;}
+  .feedback-actions{margin-top:22px;display:flex;justify-content:flex-end;}
+
+  /* summary */
+  .summary h1{font-family:'Fraunces',serif;font-weight:500;font-size:2rem;color:var(--navy-deep);margin-bottom:6px;}
+  .summary .score-big{font-family:'Fraunces',serif;font-size:3.2rem;color:var(--navy);margin:20px 0 4px;}
+  .summary .score-sub{color:var(--ink-soft);font-size:0.9rem;margin-bottom:34px;}
+  table.breakdown{width:100%;border-collapse:collapse;font-size:0.88rem;}
+  table.breakdown th{text-align:left;font-size:0.75rem;letter-spacing:0.02em;color:var(--ink-soft);border-bottom:1px solid var(--rule);padding:8px 6px;}
+  table.breakdown td{padding:10px 6px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;}
+  .restart{margin-top:36px;}
+
+  @media (max-width:600px){
+    .setup h1{font-size:1.5rem;}
+    .scenario-title{font-size:1.35rem;}
+    .summary .score-big{font-size:2.4rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">Decision Point<span>.</span></div>
+      <div class="progress-label" id="progressLabel"></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </header>
+
+  <main id="app"></main>
+</div>
+
+<script>
+/* ---------------------------------------------------------
+   STATE
+--------------------------------------------------------- */
+let SCENARIOS = [];
+let currentIndex = 0;
+let results = []; // {num, name, level, points}
+let currentMatches = [];
+let showingFullList = false;
+
+const LEVEL_POINTS = { Green: 4, LightGreen: 3, Orange: 2, Red: 1 };
+const LEVEL_LABEL  = { Green: "Green — most appropriate", LightGreen: "Light green — intermediate appropriate", Orange: "Orange — intermediate inappropriate", Red: "Red — least appropriate" };
+const LEVEL_CLASS  = { Green: "level-green", LightGreen: "level-lightgreen", Orange: "level-orange", Red: "level-red" };
+const LEVEL_DOT    = { Green: "var(--green)", LightGreen: "var(--lightgreen)", Orange: "var(--orange)", Red: "var(--red)" };
+
+/* ---------------------------------------------------------
+   TEXT MATCHING ENGINE
+   No external AI calls — local keyword/synonym similarity.
+--------------------------------------------------------- */
+const STOPWORDS = new Set(("a an the and or but if then so to of in on at for with without within into onto "+
+  "is are was were be been being have has had do does did will would could should shall can may might must "+
+  "this that these those it its it's i you he she we they them his her their our your my me us not no as by "+
+  "about while just also very really would've i'll ill youd you'd").split(/\s+/));
+
+const SYNONYM_GROUPS = [
+  ["manager","boss","pm","supervisor","lead","leader","superior"],
+  ["escalate","raise","flag","highlight","report","surface"],
+  ["pause","stop","hold","delay","halt","postpone","wait"],
+  ["deadline","timeline","schedule","timeframe","eta"],
+  ["scope","requirement","spec","specification","boundary","boundaries"],
+  ["client","customer","stakeholder","sponsor"],
+  ["team","colleague","peer","coworker","teammate"],
+  ["decline","refuse","reject","say no","pushback","push back"],
+  ["agree","accept","say yes","commit","onboard"],
+  ["clarify","confirm","check","verify","validate","establish"],
+  ["proactive","initiative","take charge","ownership","own it"],
+  ["ask","inquire","request","query"],
+  ["explain","communicate","articulate","convey"],
+  ["priority","priorities","important","critical","urgent"],
+  ["align","alignment","sync","synchronize","coordinate"],
+  ["document","record","log","write up","note"],
+  ["mentor","coach","guide","train","teach"],
+  ["delegate","assign","hand off","distribute"],
+  ["risk","concern","issue","problem"],
+  ["silent","quiet","say nothing","stay quiet","ignore"],
+  ["volunteer","offer","step up"],
+  ["meeting","discussion","conversation","call","sync-up"],
+  ["email","message","note","memo","communication"],
+  ["plan","strategy","approach","roadmap"],
+  ["innovate","innovation","new idea","creative","experiment"],
+  ["overtime","extra hours","late nights","work late"],
+  ["recognition","credit","acknowledgement","praise"],
+  ["independent","alone","solo","by myself","on my own"],
+  ["formal","official","structured"],
+  ["informal","casual","unofficial"]
+];
+const SYN_MAP = {};
+SYNONYM_GROUPS.forEach(group=>{
+  const canon = group[0];
+  group.forEach(w=>{ SYN_MAP[w] = canon; });
+});
+
+function stem(w){
+  if (w.length > 5 && w.endsWith("ing")) return w.slice(0,-3);
+  if (w.length > 4 && w.endsWith("edly")) return w.slice(0,-4);
+  if (w.length > 4 && w.endsWith("ied")) return w.slice(0,-3)+"y";
+  if (w.length > 4 && w.endsWith("ed")) return w.slice(0,-2);
+  if (w.length > 4 && w.endsWith("ies")) return w.slice(0,-3)+"y";
+  if (w.length > 3 && w.endsWith("es")) return w.slice(0,-2);
+  if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0,-1);
+  if (w.length > 4 && w.endsWith("ly")) return w.slice(0,-2);
+  return w;
+}
+
+function normalizeText(text){
+  const raw = (text||"").toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean);
+  const tokens = [];
+  for (const w of raw){
+    if (STOPWORDS.has(w) || w.length < 2) continue;
+    const stemmed = stem(w);
+    const canon = SYN_MAP[w] || SYN_MAP[stemmed] || stemmed;
+    tokens.push(canon);
+  }
+  return tokens;
+}
+
+function toVector(tokens){
+  const v = {};
+  tokens.forEach(t=>{ v[t] = (v[t]||0) + 1; });
+  return v;
+}
+
+function cosineSim(vA, vB){
+  let dot=0, magA=0, magB=0;
+  for (const k in vA){ magA += vA[k]*vA[k]; if (vB[k]) dot += vA[k]*vB[k]; }
+  for (const k in vB){ magB += vB[k]*vB[k]; }
+  if (magA===0 || magB===0) return 0;
+  return dot / (Math.sqrt(magA)*Math.sqrt(magB));
+}
+
+function rankDecisions(userText, decisions){
+  const userVec = toVector(normalizeText(userText));
+  const scored = decisions.map((d,i)=>{
+    const corpusText = d.decision + " " + d.decision + " " + (d.tag||"");
+    const vec = toVector(normalizeText(corpusText));
+    return { index:i, decision:d, score: cosineSim(userVec, vec) };
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  return scored;
+}
+
+/* ---------------------------------------------------------
+   SHEET LOADING
+--------------------------------------------------------- */
+function getSheetUrlFromQuery(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get("sheet");
+}
+
+function setSheetUrlInQuery(url){
+  const params = new URLSearchParams(window.location.search);
+  params.set("sheet", url);
+  const newUrl = window.location.pathname + "?" + params.toString();
+  window.history.replaceState({}, "", newUrl);
+}
+
+function toCsvExportUrl(url){
+  // Accept a Google Sheets "publish to web" link (already CSV) or a normal share link and
+  // try to normalize to a CSV export URL when possible.
+  if (url.includes("output=csv") || url.includes("/pub?")) return url;
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (match){
+    const id = match[1];
+    const gidMatch = url.match(/gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : "0";
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+  }
+  return url;
+}
+
+function parseSheetRows(rows){
+  // Header-based lookup so column order in the sheet doesn't matter.
+  const header = rows[0].map(h => (h||"").trim().toLowerCase());
+  const idx = (name) => header.indexOf(name);
+
+  const iNum = idx("scenario no.") >= 0 ? idx("scenario no.") : idx("scenario no");
+  const iName = idx("scenario name");
+  const iCategory = idx("category");
+  const iScenario = idx("scenario");
+  const iDecision = idx("decision");
+  const iLevel = idx("level");
+  const iFeedback = idx("feedback");
+  const iTag = idx("action tags") >= 0 ? idx("action tags") : idx("tag");
+  const iVideo = idx("videourl") >= 0 ? idx("videourl") : idx("video url");
+
+  if (iDecision < 0 || iLevel < 0) {
+    throw new Error("MISSING_COLUMNS");
+  }
+
+  const scenarios = [];
+  let current = null;
+  let lastVideo = "";
+  let lastCategory = "";
+
+  for (let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if (!row || row.every(c => !c || !c.trim())) continue;
+
+    const numRaw = iNum >= 0 ? (row[iNum]||"").trim() : "";
+    if (numRaw){
+      current = {
+        num: numRaw,
+        name: iName >= 0 ? (row[iName]||"").trim() : `Scenario ${numRaw}`,
+        category: iCategory >= 0 && row[iCategory] && row[iCategory].trim() ? row[iCategory].trim() : lastCategory,
+        scenario: iScenario >= 0 ? (row[iScenario]||"").trim() : "",
+        video: iVideo >= 0 && row[iVideo] && row[iVideo].trim() ? row[iVideo].trim() : lastVideo,
+        decisions: []
+      };
+      lastVideo = current.video;
+      lastCategory = current.category;
+      scenarios.push(current);
+    }
+    if (!current) continue;
+    const decisionText = (row[iDecision]||"").trim();
+    if (!decisionText) continue;
+    const level = (row[iLevel]||"").trim();
+    if (!level) continue; // skip rows with no level assigned yet
+    current.decisions.push({
+      decision: decisionText,
+      level: level,
+      feedback: iFeedback >= 0 ? (row[iFeedback]||"").trim() : "",
+      tag: iTag >= 0 ? (row[iTag]||"").trim() : ""
+    });
+  }
+  return scenarios.filter(s => s.decisions.length > 0);
+}
+
+function loadSheet(url){
+  const csvUrl = toCsvExportUrl(url);
+  return new Promise((resolve, reject)=>{
+    Papa.parse(csvUrl, {
+      download: true,
+      complete: (results)=>{
+        try{
+          const scenarios = parseSheetRows(results.data);
+          if (scenarios.length === 0) reject(new Error("NO_SCENARIOS"));
+          else resolve(scenarios);
+        } catch(e){ reject(e); }
+      },
+      error: (err)=> reject(err)
+    });
+  });
+}
+
+/* ---------------------------------------------------------
+   RENDERING
+--------------------------------------------------------- */
+const app = document.getElementById("app");
+const progressLabel = document.getElementById("progressLabel");
+const progressFill = document.getElementById("progressFill");
+
+function updateProgress(){
+  if (SCENARIOS.length === 0){ progressLabel.textContent=""; progressFill.style.width="0%"; return; }
+  if (currentIndex >= SCENARIOS.length){
+    progressLabel.textContent = "Complete";
+    progressFill.style.width = "100%";
+    return;
+  }
+  progressLabel.textContent = `Scenario ${currentIndex+1} of ${SCENARIOS.length}`;
+  progressFill.style.width = `${(currentIndex/SCENARIOS.length)*100}%`;
+}
+
+function renderSetup(prefillUrl, errorMsg){
+  updateProgress();
+  app.innerHTML = `
+    <div class="setup">
+      <h1>Run the simulation</h1>
+      <p>Paste the link to your published Google Sheet below. The sheet stays the single source of truth — edit it any time and reload this page to pick up changes.</p>
+      <div class="field">
+        <label for="sheetUrl">Published sheet link (File → Share → Publish to web, CSV)</label>
+        <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" value="${prefillUrl ? prefillUrl.replace(/"/g,'&quot;') : ''}">
+        <div class="hint">Required columns (any order): <code>Scenario No.</code>, <code>Scenario Name</code>, <code>Scenario</code>, <code>Decision</code>, <code>Level</code>, <code>Feedback</code>. Optional: <code>Category</code>, <code>VideoURL</code>.</div>
+      </div>
+      <button class="btn btn-primary" id="loadBtn">Load simulation</button>
+      <div id="setupMsg"></div>
+    </div>
+  `;
+  document.getElementById("loadBtn").addEventListener("click", handleLoadClick);
+  document.getElementById("sheetUrl").addEventListener("keydown", (e)=>{ if(e.key==="Enter") handleLoadClick(); });
+  if (errorMsg){
+    document.getElementById("setupMsg").innerHTML = `<div class="error-box">${errorMsg}</div>`;
+  }
+}
+
+function handleLoadClick(){
+  const url = document.getElementById("sheetUrl").value.trim();
+  if (!url) return;
+  document.getElementById("setupMsg").innerHTML = `<div class="loading">Loading scenarios…</div>`;
+  loadSheet(url).then(scenarios=>{
+    SCENARIOS = scenarios;
+    currentIndex = 0;
+    results = [];
+    setSheetUrlInQuery(url);
+    renderScenario();
+  }).catch(err=>{
+    let msg = "Couldn't load that sheet. Double check it's published to the web as CSV and the link is correct.";
+    if (err.message === "MISSING_COLUMNS") msg = "The sheet is missing a required 'Decision' or 'Level' column. Check the header row.";
+    if (err.message === "NO_SCENARIOS") msg = "No complete scenario rows found — make sure every decision row has a Level value (Green/LightGreen/Orange/Red).";
+    renderSetup(url, msg);
+  });
+}
+
+function renderScenario(){
+  if (currentIndex >= SCENARIOS.length){
+    renderSummary();
+    return;
+  }
+  updateProgress();
+  currentMatches = [];
+  showingFullList = false;
+  const s = SCENARIOS[currentIndex];
+
+  const videoBlock = s.video ? `
+    <div class="video-slot">
+      ${isDirectVideo(s.video)
+        ? `<video controls src="${escapeAttr(s.video)}"></video>`
+        : `<iframe src="${escapeAttr(toEmbeddableUrl(s.video))}" allow="autoplay; fullscreen" allowfullscreen></iframe>`}
+    </div>` : "";
+
+  app.innerHTML = `
+    ${s.category ? `<div class="category-tag">${escapeHtml(s.category)}</div>` : ""}
+    <h1 class="scenario-title">${escapeHtml(s.name)}</h1>
+    ${videoBlock}
+    <div class="scenario-text">${escapeHtml(s.scenario)}</div>
+    <div class="response-block">
+      <label for="responseInput">What do you do?</label>
+      <textarea id="responseInput" placeholder="Type how you'd respond, in your own words…"></textarea>
+      <div class="response-actions">
+        <button class="btn btn-primary" id="submitResponse">See closest matches</button>
+      </div>
+    </div>
+    <div id="matchesArea"></div>
+  `;
+
+  document.getElementById("submitResponse").addEventListener("click", handleSubmitResponse);
+  document.getElementById("responseInput").focus();
+}
+
+function isDirectVideo(url){
+  return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+}
+
+function toEmbeddableUrl(url){
+  // Accept normal share links people copy-paste and convert to embeddable form.
+  let m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/))([a-zA-Z0-9_-]{6,})/);
+  if (m) return `https://www.youtube.com/embed/${m[1]}`;
+  m = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{6,})/);
+  if (m) return url; // already an embed link
+  m = url.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+  if (m) return `https://player.vimeo.com/video/${m[1]}`;
+  return url; // fall back to whatever was pasted (e.g. Synthesia/HeyGen share link)
+}
+
+function handleSubmitResponse(){
+  const text = document.getElementById("responseInput").value.trim();
+  if (!text) return;
+  const s = SCENARIOS[currentIndex];
+  const ranked = rankDecisions(text, s.decisions);
+  currentMatches = ranked.filter(r=>r.score > 0.04).slice(0,3);
+  if (currentMatches.length === 0){
+    currentMatches = ranked.slice(0,3);
+  }
+  renderMatches();
+}
+
+function renderMatches(){
+  const area = document.getElementById("matchesArea");
+  const s = SCENARIOS[currentIndex];
+  const cards = currentMatches.map(m => `
+    <button class="match-card" data-index="${m.index}">${escapeHtml(m.decision.decision)}</button>
+  `).join("");
+
+  area.innerHTML = `
+    <div class="matches">
+      <h2>Is one of these what you meant?</h2>
+      <div class="sub">Pick the closest match to your response.</div>
+      ${cards}
+      <button class="fallback-link" id="showAllBtn">None of these — show every option</button>
+      <div id="fullListArea"></div>
+    </div>
+  `;
+
+  area.querySelectorAll(".match-card").forEach(btn=>{
+    btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
+  });
+  document.getElementById("showAllBtn").addEventListener("click", toggleFullList);
+}
+
+function toggleFullList(){
+  showingFullList = !showingFullList;
+  const s = SCENARIOS[currentIndex];
+  const el = document.getElementById("fullListArea");
+  if (!showingFullList){ el.innerHTML = ""; return; }
+  const items = s.decisions.map((d,i)=>`<button class="match-card" data-index="${i}">${escapeHtml(d.decision)}</button>`).join("");
+  el.innerHTML = `<div class="full-list">${items}</div>`;
+  el.querySelectorAll(".match-card").forEach(btn=>{
+    btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
+  });
+}
+
+function selectDecision(index){
+  const s = SCENARIOS[currentIndex];
+  const decision = s.decisions[index];
+  const level = normalizeLevel(decision.level);
+  const points = LEVEL_POINTS[level] || 0;
+
+  results.push({ num: s.num, name: s.name, level, points, decisionText: decision.decision });
+
+  app.innerHTML = `
+    ${s.category ? `<div class="category-tag">${escapeHtml(s.category)}</div>` : ""}
+    <h1 class="scenario-title">${escapeHtml(s.name)}</h1>
+    <div class="feedback">
+      <div class="level-chip ${LEVEL_CLASS[level]||''}">${escapeHtml(LEVEL_LABEL[level]||decision.level)}</div>
+      <div class="chosen-decision">${escapeHtml(decision.decision)}</div>
+      <div class="feedback-text">${escapeHtml(decision.feedback || "No additional feedback provided for this decision.")}</div>
+      <div class="feedback-actions">
+        <button class="btn btn-primary" id="nextBtn">${currentIndex+1 < SCENARIOS.length ? "Next scenario" : "See results"}</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("nextBtn").addEventListener("click", ()=>{
+    currentIndex++;
+    renderScenario();
+  });
+}
+
+function normalizeLevel(raw){
+  const v = (raw||"").toLowerCase().replace(/[\s_-]/g,"");
+  if (v.includes("lightgreen")) return "LightGreen";
+  if (v.includes("green")) return "Green";
+  if (v.includes("orange")) return "Orange";
+  if (v.includes("red")) return "Red";
+  return raw;
+}
+
+function renderSummary(){
+  updateProgress();
+  const total = results.reduce((sum,r)=>sum+r.points,0);
+  const max = SCENARIOS.length * 4;
+  const rows = results.map(r=>`
+    <tr>
+      <td>${escapeHtml(r.num)}. ${escapeHtml(r.name)}</td>
+      <td><span class="dot" style="background:${LEVEL_DOT[r.level]||'#999'}"></span>${escapeHtml(r.level)}</td>
+      <td style="text-align:right">${r.points} / 4</td>
+    </tr>
+  `).join("");
+
+  app.innerHTML = `
+    <div class="summary">
+      <h1>Simulation complete</h1>
+      <p style="color:var(--ink-soft)">Here's how your decisions scored across all ${SCENARIOS.length} scenarios.</p>
+      <div class="score-big">${total} / ${max}</div>
+      <div class="score-sub">Total points</div>
+      <table class="breakdown">
+        <thead><tr><th>Scenario</th><th>Level</th><th style="text-align:right">Points</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="restart">
+        <button class="btn btn-ghost" id="restartBtn">Run it again</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("restartBtn").addEventListener("click", ()=>{
+    currentIndex = 0;
+    results = [];
+    renderScenario();
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
+}
+function escapeAttr(str){
+  return (str||"").replace(/"/g,"&quot;");
+}
+
+/* ---------------------------------------------------------
+   BOOT
+--------------------------------------------------------- */
+(function boot(){
+  const sheetUrl = getSheetUrlFromQuery();
+  if (sheetUrl){
+    app.innerHTML = `<div class="loading">Loading scenarios…</div>`;
+    loadSheet(sheetUrl).then(scenarios=>{
+      SCENARIOS = scenarios;
+      renderScenario();
+    }).catch(()=> renderSetup(sheetUrl, "Couldn't load that sheet automatically. Check the link below and reload."));
+  } else {
+    renderSetup("");
+  }
+})();
+</script>
+</body>
+</html>
