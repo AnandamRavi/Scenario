@@ -146,10 +146,15 @@ const LEVEL_DOT    = { Green: "var(--green)", LightGreen: "var(--lightgreen)", O
    TEXT MATCHING ENGINE
    No external AI calls — local keyword/synonym similarity.
 --------------------------------------------------------- */
-const STOPWORDS = new Set(("a an the and or but if then so to of in on at for with without within into onto "+
+const STOPWORDS = new Set(("a an the and or but if then so to of in on at for with within into onto "+
   "is are was were be been being have has had do does did will would could should shall can may might must "+
-  "this that these those it its it's i you he she we they them his her their our your my me us not no as by "+
-  "about while just also very really would've i'll ill youd you'd").split(/\s+/));
+  "this that these those it its it's i you he she we they them his her their our your my me us as by "+
+  "about while just also very really would've i'll ill youd you'd am who whom").split(/\s+/));
+
+// Words that flip the meaning of what follows — handled separately from STOPWORDS so their
+// effect isn't just discarded, but used to mark the next few content words as negated.
+const NEGATIONS = new Set(["not","no","never","without","cannot","cant","nobody","none"]);
+const NEGATION_WINDOW = 3; // how many content words after a negation get flipped
 
 const SYNONYM_GROUPS = [
   ["manager","boss","pm","supervisor","lead","leader","superior"],
@@ -202,12 +207,20 @@ function stem(w){
 }
 
 function normalizeText(text){
-  const raw = (text||"").toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean);
+  let cleaned = (text||"").toLowerCase();
+  cleaned = cleaned.replace(/n't\b/g, " not"); // "don't"/"won't"/"can't" -> "... not"
+  const raw = cleaned.replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean);
   const tokens = [];
+  let negateBudget = 0;
   for (const w of raw){
-    if (STOPWORDS.has(w) || w.length < 2) continue;
+    if (NEGATIONS.has(w)){ negateBudget = NEGATION_WINDOW; continue; }
+    if (STOPWORDS.has(w) || w.length < 2) continue; // stopwords don't consume the negation budget
     const stemmed = stem(w);
-    const canon = SYN_MAP[w] || SYN_MAP[stemmed] || stemmed;
+    let canon = SYN_MAP[w] || SYN_MAP[stemmed] || stemmed;
+    if (negateBudget > 0){
+      canon = "NOT_" + canon;
+      negateBudget--;
+    }
     tokens.push(canon);
   }
   return tokens;
