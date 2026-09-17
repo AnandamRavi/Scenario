@@ -73,6 +73,17 @@
   .response-block label{display:block;font-weight:600;font-size:0.9rem;margin-bottom:8px;}
   .response-actions{display:flex;justify-content:flex-end;margin-top:12px;}
 
+  /* question stage */
+  .qa-history{margin-bottom:22px;}
+  .qa-item{background:var(--paper-raised);border:1px solid var(--rule);border-left:3px solid var(--amber);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+  .qa-q{font-weight:600;font-size:0.88rem;margin-bottom:6px;color:var(--navy-deep);}
+  .qa-a{font-size:0.9rem;color:var(--ink-soft);}
+  .qa-prompt{background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:20px 22px;}
+  .qa-prompt-label{font-weight:600;font-size:0.98rem;margin-bottom:4px;}
+  .qa-remaining{font-size:0.8rem;color:var(--ink-soft);margin-bottom:16px;}
+  .qa-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .qa-noinfo{margin-top:12px;font-size:0.86rem;color:var(--ink-soft);font-style:italic;}
+
   /* candidate matches */
   .matches{margin-top:30px;}
   .matches h2{font-family:'Fraunces',serif;font-weight:500;font-size:1.15rem;margin:0 0 4px;color:var(--navy-deep);}
@@ -135,7 +146,9 @@ let currentIndex = 0;
 let results = []; // {num, name, level, points}
 let currentMatches = [];
 let showingFullList = false;
-let responseAttempt = { combinedText: "", attemptNum: 1 };
+let responseAttempt = { combinedText: "", attemptNum: 1, hintTarget: null, hintLevel: 0 };
+let qaState = { asked: [], budget: 5 };
+const QA_BUDGET_MAX = 5;
 
 const LEVEL_POINTS = { Green: 4, LightGreen: 3, Orange: 2, Red: 1 };
 const LEVEL_LABEL  = { Green: "Green — most appropriate", LightGreen: "Light green — intermediate appropriate", Orange: "Orange — intermediate inappropriate", Red: "Red — least appropriate" };
@@ -251,6 +264,16 @@ function rankDecisions(userText, decisions){
   return scored;
 }
 
+function rankQA(userText, qaList){
+  const userVec = toVector(normalizeText(userText));
+  const scored = qaList.map((qa,i)=>{
+    const vec = toVector(normalizeText(qa.question + " " + qa.question));
+    return { index:i, qa, score: cosineSim(userVec, vec) };
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  return scored;
+}
+
 /* ---------------------------------------------------------
    SHEET LOADING
 --------------------------------------------------------- */
@@ -294,6 +317,8 @@ function parseSheetRows(rows){
   const iFeedback = idx("feedback");
   const iTag = idx("action tags") >= 0 ? idx("action tags") : idx("tag");
   const iVideo = idx("videourl") >= 0 ? idx("videourl") : idx("video url");
+  const iQuestion = idx("question");
+  const iAnswer = idx("answer");
 
   if (iDecision < 0 || iLevel < 0) {
     throw new Error("MISSING_COLUMNS");
@@ -316,7 +341,8 @@ function parseSheetRows(rows){
         category: iCategory >= 0 && row[iCategory] && row[iCategory].trim() ? row[iCategory].trim() : lastCategory,
         scenario: iScenario >= 0 ? (row[iScenario]||"").trim() : "",
         video: iVideo >= 0 && row[iVideo] && row[iVideo].trim() ? row[iVideo].trim() : lastVideo,
-        decisions: []
+        decisions: [],
+        qa: []
       };
       lastVideo = current.video;
       lastCategory = current.category;
@@ -324,15 +350,23 @@ function parseSheetRows(rows){
     }
     if (!current) continue;
     const decisionText = (row[iDecision]||"").trim();
-    if (!decisionText) continue;
-    const level = (row[iLevel]||"").trim();
-    if (!level) continue; // skip rows with no level assigned yet
-    current.decisions.push({
-      decision: decisionText,
-      level: level,
-      feedback: iFeedback >= 0 ? (row[iFeedback]||"").trim() : "",
-      tag: iTag >= 0 ? (row[iTag]||"").trim() : ""
-    });
+    if (decisionText){
+      const level = (row[iLevel]||"").trim();
+      if (!level) continue; // skip rows with no level assigned yet
+      current.decisions.push({
+        decision: decisionText,
+        level: level,
+        feedback: iFeedback >= 0 ? (row[iFeedback]||"").trim() : "",
+        tag: iTag >= 0 ? (row[iTag]||"").trim() : ""
+      });
+      continue;
+    }
+    // Rows with no Decision but a Question + Answer feed the "ask a question" stage instead.
+    const qText = iQuestion >= 0 ? (row[iQuestion]||"").trim() : "";
+    const aText = iAnswer >= 0 ? (row[iAnswer]||"").trim() : "";
+    if (qText && aText){
+      current.qa.push({ question: qText, answer: aText });
+    }
   }
   return scenarios.filter(s => s.decisions.length > 0);
 }
@@ -420,7 +454,8 @@ function renderScenario(){
   updateProgress();
   currentMatches = [];
   showingFullList = false;
-  responseAttempt = { combinedText: "", attemptNum: 1 };
+  responseAttempt = { combinedText: "", attemptNum: 1, hintTarget: null, hintLevel: 0 };
+  qaState = { asked: [], budget: QA_BUDGET_MAX };
   const s = SCENARIOS[currentIndex];
 
   const videoBlock = s.video ? `
@@ -435,6 +470,80 @@ function renderScenario(){
     <h1 class="scenario-title">${escapeHtml(s.name)}</h1>
     ${videoBlock}
     <div class="scenario-text">${escapeHtml(s.scenario)}</div>
+    <div id="stageArea"></div>
+  `;
+
+  renderQuestionStage();
+}
+
+function renderQuestionStage(){
+  const s = SCENARIOS[currentIndex];
+  const area = document.getElementById("stageArea");
+  const hasQA = s.qa && s.qa.length > 0;
+  const remaining = qaState.budget;
+
+  const history = qaState.asked.map(qa => `
+    <div class="qa-item">
+      <div class="qa-q">Q: ${escapeHtml(qa.question)}</div>
+      <div class="qa-a">${escapeHtml(qa.answer)}</div>
+    </div>
+  `).join("");
+
+  area.innerHTML = `
+    ${qaState.asked.length > 0 ? `<div class="qa-history">${history}</div>` : ""}
+    <div class="qa-prompt">
+      <div class="qa-prompt-label">${hasQA ? `Do you need any more information, or are you ready to answer?` : `Ready to answer?`}</div>
+      ${hasQA ? `<div class="qa-remaining">${remaining} question${remaining===1?'':'s'} remaining</div>` : ""}
+      <div class="qa-actions">
+        ${hasQA && remaining > 0 ? `<button class="btn btn-ghost" id="askQBtn">Ask a question</button>` : ""}
+        <button class="btn btn-primary" id="readyBtn">I'm ready to answer</button>
+      </div>
+    </div>
+    <div id="askArea"></div>
+  `;
+
+  if (hasQA && remaining > 0){
+    document.getElementById("askQBtn").addEventListener("click", renderAskInput);
+  }
+  document.getElementById("readyBtn").addEventListener("click", renderResponseStage);
+}
+
+function renderAskInput(){
+  const askArea = document.getElementById("askArea");
+  askArea.innerHTML = `
+    <div class="response-block" style="margin-top:16px;">
+      <label for="questionInput">What would you like to ask?</label>
+      <textarea id="questionInput" placeholder="e.g. Have I worked with this client before?"></textarea>
+      <div class="response-actions">
+        <button class="btn btn-primary" id="submitQuestion">Ask</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("submitQuestion").addEventListener("click", handleAskQuestion);
+  document.getElementById("questionInput").focus();
+}
+
+function handleAskQuestion(){
+  const text = document.getElementById("questionInput").value.trim();
+  if (!text) return;
+  const s = SCENARIOS[currentIndex];
+  const ranked = rankQA(text, s.qa);
+  const best = ranked[0];
+
+  if (best && best.score > 0.06){
+    qaState.asked.push({ question: best.qa.question, answer: best.qa.answer });
+    qaState.budget--;
+    renderQuestionStage();
+  } else {
+    const askArea = document.getElementById("askArea");
+    askArea.innerHTML += `<div class="qa-noinfo">I don't have specific information on that for this scenario — try asking about something else, or a different way.</div>`;
+  }
+}
+
+function renderResponseStage(){
+  const s = SCENARIOS[currentIndex];
+  const area = document.getElementById("stageArea");
+  area.innerHTML = `
     <div class="response-block">
       <label for="responseInput">What do you do?</label>
       <textarea id="responseInput" placeholder="Type how you'd respond, in your own words…"></textarea>
@@ -444,7 +553,6 @@ function renderScenario(){
     </div>
     <div id="matchesArea"></div>
   `;
-
   document.getElementById("submitResponse").addEventListener("click", handleSubmitResponse);
   document.getElementById("responseInput").focus();
 }
@@ -467,7 +575,7 @@ function toEmbeddableUrl(url){
 function handleSubmitResponse(){
   const text = document.getElementById("responseInput").value.trim();
   if (!text) return;
-  responseAttempt = { combinedText: text, attemptNum: 1 };
+  responseAttempt = { combinedText: text, attemptNum: 1, hintTarget: null, hintLevel: 0 };
   runMatch(text);
 }
 
@@ -528,36 +636,71 @@ function handleNoneClicked(){
     });
     document.getElementById("moreInfoInput").focus();
   } else {
-    // Second "none of these" — nudge toward the right themes, then show everything.
-    const hint = computeNudgeHint();
-    const s = SCENARIOS[currentIndex];
-    const items = s.decisions.map((d,i)=>`<button class="match-card" data-index="${i}">${escapeHtml(d.decision)}</button>`).join("");
-    area.innerHTML = `
-      <div class="matches">
-        <h2>Here's a nudge</h2>
-        <div class="sub">${hint ? `Think about ${hint}.` : "Have a look through the full list of options below."}</div>
-        <div class="full-list">${items}</div>
-      </div>
-    `;
-    area.querySelectorAll(".match-card").forEach(btn=>{
-      btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
-    });
+    // Second+ "none of these" — progressive keyword hints from the correct answer,
+    // always capped at 3 selectable options, never the full list.
+    renderHintStage();
   }
 }
 
-function computeNudgeHint(){
-  // Pull thematic hints from the Action Tags of the strongest-ranked decisions so far,
-  // without revealing the actual decision text.
+function renderHintStage(){
+  const area = document.getElementById("matchesArea");
   const s = SCENARIOS[currentIndex];
-  const ranked = rankDecisions(responseAttempt.combinedText, s.decisions);
-  const tags = [];
-  for (const r of ranked){
-    const tag = (r.decision.tag || "").trim();
-    if (tag && !tags.includes(tag)) tags.push(tag);
-    if (tags.length >= 2) break;
+
+  // Lock in a single target ("most appropriate") answer the first time we enter hint mode,
+  // so hints keep building toward the same answer rather than jumping around.
+  if (!responseAttempt.hintTarget){
+    const ranked = rankDecisions(responseAttempt.combinedText, s.decisions);
+    const greenRanked = ranked.filter(r => normalizeLevel(r.decision.level) === "Green");
+    responseAttempt.hintTarget = (greenRanked[0] || ranked[0]).decision;
+    responseAttempt.hintLevel = 0;
+  } else {
+    responseAttempt.hintLevel++;
   }
-  if (tags.length === 0) return "";
-  return tags.map(t => t.toLowerCase()).join(" and ");
+
+  const revealCount = 2 + responseAttempt.hintLevel * 2;
+  const keywords = extractKeywords(responseAttempt.hintTarget.decision);
+  const shown = keywords.slice(0, Math.min(revealCount, keywords.length));
+  const fullyRevealed = shown.length >= keywords.length;
+
+  // Always cap at 3 options: the hint target plus up to 2 other closest-ranked decisions.
+  const ranked = rankDecisions(responseAttempt.combinedText, s.decisions);
+  const options = [];
+  const targetIndex = s.decisions.indexOf(responseAttempt.hintTarget);
+  options.push(targetIndex);
+  for (const r of ranked){
+    if (options.length >= 3) break;
+    if (!options.includes(r.index)) options.push(r.index);
+  }
+
+  const cards = options.map(i => `
+    <button class="match-card" data-index="${i}">${escapeHtml(s.decisions[i].decision)}</button>
+  `).join("");
+
+  area.innerHTML = `
+    <div class="matches">
+      <h2>Here's a nudge</h2>
+      <div class="sub">Keywords from the strongest answer: <strong>${escapeHtml(shown.join(", "))}</strong></div>
+      ${cards}
+      ${!fullyRevealed ? `<button class="fallback-link" id="moreHintBtn">Still not it — give me another clue</button>` : ""}
+    </div>
+  `;
+
+  area.querySelectorAll(".match-card").forEach(btn=>{
+    btn.addEventListener("click", ()=> selectDecision(parseInt(btn.dataset.index)));
+  });
+  if (!fullyRevealed){
+    document.getElementById("moreHintBtn").addEventListener("click", renderHintStage);
+  }
+}
+
+function extractKeywords(text){
+  const SKIP = new Set(["a","an","the","and","or","but","to","of","in","on","at","for","with","is","are",
+    "was","were","that","this","you","your","i","it's","its","be","as","by","from","then","so","would",
+    "could","should","will","not","no","their","them","he","she","they","we","us","my","me"]);
+  return text.split(/\s+/).filter(w=>{
+    const clean = w.toLowerCase().replace(/[^a-z]/g,"");
+    return clean.length > 2 && !SKIP.has(clean);
+  });
 }
 
 function selectDecision(index){
