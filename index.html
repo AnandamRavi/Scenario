@@ -219,18 +219,22 @@ function stem(w){
   return w;
 }
 
-function normalizeText(text){
+function normalizeText(text, negationAware){
+  if (negationAware === undefined) negationAware = true;
   let cleaned = (text||"").toLowerCase();
   cleaned = cleaned.replace(/n't\b/g, " not"); // "don't"/"won't"/"can't" -> "... not"
   const raw = cleaned.replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean);
   const tokens = [];
   let negateBudget = 0;
   for (const w of raw){
-    if (NEGATIONS.has(w)){ negateBudget = NEGATION_WINDOW; continue; }
+    if (NEGATIONS.has(w)){
+      if (negationAware) negateBudget = NEGATION_WINDOW;
+      continue; // the negation word itself is never a token
+    }
     if (STOPWORDS.has(w) || w.length < 2) continue; // stopwords don't consume the negation budget
     const stemmed = stem(w);
     let canon = SYN_MAP[w] || SYN_MAP[stemmed] || stemmed;
-    if (negateBudget > 0){
+    if (negationAware && negateBudget > 0){
       canon = "NOT_" + canon;
       negateBudget--;
     }
@@ -265,10 +269,32 @@ function rankDecisions(userText, decisions){
 }
 
 function rankQA(userText, qaList){
-  const userVec = toVector(normalizeText(userText));
+  // Negation-awareness is switched off here: Q&A is topic lookup, not stance-judging, and
+  // words like "no"/"not" inside a natural question (e.g. "saying no to the client") shouldn't
+  // knock out an unrelated topic word like "client" from matching.
+  //
+  // TF-IDF weighting: words that appear across nearly every Q&A for this scenario (e.g.
+  // "client", "project", "PM") count for less, while words unique to one entry (e.g.
+  // "reasonable", "relationship") count for more — otherwise generic overlap drowns out the
+  // one distinguishing word that actually points to the right answer.
+  const corpora = qaList.map(qa =>
+    normalizeText(qa.question + " " + qa.question + " " + qa.question + " " + qa.answer, false)
+  );
+  const docFreq = {};
+  corpora.forEach(tokens => {
+    new Set(tokens).forEach(t => { docFreq[t] = (docFreq[t]||0) + 1; });
+  });
+  const N = corpora.length || 1;
+  const idf = (t) => Math.log((N + 1) / ((docFreq[t]||0) + 1)) + 1;
+  const weightedVec = (tokens) => {
+    const v = {};
+    tokens.forEach(t => { v[t] = (v[t]||0) + idf(t); });
+    return v;
+  };
+
+  const userVec = weightedVec(normalizeText(userText, false));
   const scored = qaList.map((qa,i)=>{
-    const vec = toVector(normalizeText(qa.question + " " + qa.question));
-    return { index:i, qa, score: cosineSim(userVec, vec) };
+    return { index:i, qa, score: cosineSim(userVec, weightedVec(corpora[i])) };
   });
   scored.sort((a,b)=>b.score-a.score);
   return scored;
@@ -530,14 +556,23 @@ function handleAskQuestion(){
   const ranked = rankQA(text, s.qa);
   const best = ranked[0];
 
-  if (best && best.score > 0.06){
-    qaState.asked.push({ question: best.qa.question, answer: best.qa.answer });
-    qaState.budget--;
-    renderQuestionStage();
-  } else {
+  if (!best || best.score <= 0.06){
     const askArea = document.getElementById("askArea");
     askArea.innerHTML += `<div class="qa-noinfo">I don't have specific information on that for this scenario — try asking about something else, or a different way.</div>`;
+    return;
   }
+
+  // If the question seems to cover two distinct topics (a decent second match that isn't
+  // just a weaker echo of the first), surface both answers rather than picking one.
+  const matches = [best];
+  const second = ranked[1];
+  if (second && second.score > 0.06 && second.score > best.score * 0.55 && second.qa !== best.qa){
+    matches.push(second);
+  }
+
+  matches.forEach(m => qaState.asked.push({ question: m.qa.question, answer: m.qa.answer }));
+  qaState.budget--; // a compound question still only costs one of the learner's 5 questions
+  renderQuestionStage();
 }
 
 function renderResponseStage(){
