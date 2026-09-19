@@ -510,7 +510,7 @@ function renderQuestionStage(){
 
   const history = qaState.asked.map(qa => `
     <div class="qa-item">
-      <div class="qa-q">Q: ${escapeHtml(qa.question)}</div>
+      <div class="qa-q">You asked: ${escapeHtml(qa.question)}</div>
       <div class="qa-a">${escapeHtml(qa.answer)}</div>
     </div>
   `).join("");
@@ -562,16 +562,10 @@ function handleAskQuestion(){
     return;
   }
 
-  // If the question seems to cover two distinct topics (a decent second match that isn't
-  // just a weaker echo of the first), surface both answers rather than picking one.
-  const matches = [best];
-  const second = ranked[1];
-  if (second && second.score > 0.06 && second.score > best.score * 0.55 && second.qa !== best.qa){
-    matches.push(second);
-  }
-
-  matches.forEach(m => qaState.asked.push({ question: m.qa.question, answer: m.qa.answer }));
-  qaState.budget--; // a compound question still only costs one of the learner's 5 questions
+  // Store what the learner actually typed, not the pre-written matched question — so the
+  // answer reads as a direct reply to them, not as a lookup result surfacing our own wording.
+  qaState.asked.push({ question: text, answer: best.qa.answer });
+  qaState.budget--;
   renderQuestionStage();
 }
 
