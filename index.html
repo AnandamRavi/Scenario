@@ -555,16 +555,47 @@ function handleAskQuestion(){
   const s = SCENARIOS[currentIndex];
   const ranked = rankQA(text, s.qa);
   const best = ranked[0];
+  const askArea = document.getElementById("askArea");
 
   if (!best || best.score <= 0.06){
-    const askArea = document.getElementById("askArea");
     askArea.innerHTML += `<div class="qa-noinfo">I don't have specific information on that for this scenario — try asking about something else, or a different way.</div>`;
     return;
   }
 
-  // Store what the learner actually typed, not the pre-written matched question — so the
-  // answer reads as a direct reply to them, not as a lookup result surfacing our own wording.
-  qaState.asked.push({ question: text, answer: best.qa.answer });
+  // A single word like "client" can genuinely mean two different things in this scenario
+  // (the client organization vs. the client's PM specifically) with no way to tell from the
+  // wording alone. Rather than confidently guessing, ask which one was meant — the way a
+  // person would — when the top two candidates are close enough to be a real toss-up.
+  const second = ranked[1];
+  const isAmbiguous = second && second.score > 0.06 && second.score >= best.score * 0.75 && second.qa !== best.qa;
+
+  if (isAmbiguous){
+    renderQaClarify(text, [best, second]);
+    return;
+  }
+
+  answerQuestion(text, best.qa.answer);
+}
+
+function renderQaClarify(originalText, candidates){
+  const askArea = document.getElementById("askArea");
+  const cards = candidates.map((c,i)=>`
+    <button class="match-card" data-i="${i}">${escapeHtml(c.qa.question)}</button>
+  `).join("");
+  askArea.innerHTML = `
+    <div class="matches">
+      <h2>Just to clarify —</h2>
+      <div class="sub">Which of these is closer to what you're asking?</div>
+      ${cards}
+    </div>
+  `;
+  askArea.querySelectorAll(".match-card").forEach((btn,i)=>{
+    btn.addEventListener("click", ()=> answerQuestion(originalText, candidates[i].qa.answer));
+  });
+}
+
+function answerQuestion(originalText, answer){
+  qaState.asked.push({ question: originalText, answer: answer });
   qaState.budget--;
   renderQuestionStage();
 }
