@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teacher Practice Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#172b3a; --muted:#4d5f69; --teal:#287d78; --teal-d:#1d625e;
+  --paper:#f3f0e8; --panel:#ffffff; --soft:#dde8e1; --sand:#efe9dc; --pop:#f2c14e; --navy:#172b3a; --on-navy:#ffffff;
+  --head:"Bangers","Impact",system-ui,sans-serif; --body:"Comic Neue","Comic Sans MS",system-ui,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--ink:#e8efe9;--muted:#b4c3bd;--paper:#0f1c25;--panel:#17293a;--soft:#1c3a3a;--sand:#2a2a24;--navy:#0a131a;--teal:#4fb5ad;--teal-d:#7fd0c8}
+}
+:root[data-theme="dark"]{--ink:#e8efe9;--muted:#b4c3bd;--paper:#0f1c25;--panel:#17293a;--soft:#1c3a3a;--sand:#2a2a24;--navy:#0a131a;--teal:#4fb5ad;--teal-d:#7fd0c8}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 var(--body);
+  background-image:radial-gradient(color-mix(in srgb,var(--ink) 9%,transparent) 1px,transparent 1.4px);background-size:9px 9px}
+.page{max-width:1080px;margin:0 auto;padding:20px 18px 28px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.top b{font:400 clamp(26px,4vw,36px)/1 var(--head);letter-spacing:.04em}
+.top span{font-weight:700;color:var(--teal-d)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.panel{position:relative;background:var(--panel);border:3px solid var(--ink);border-radius:4px;box-shadow:5px 5px 0 var(--ink);padding:20px 22px;overflow:hidden}
+.hero{grid-column:span 7;min-height:300px;display:flex;flex-direction:column;justify-content:space-between}
+.art{grid-column:span 5;background:var(--soft);padding:0;min-height:300px}
+.cap{display:inline-block;align-self:flex-start;background:var(--pop);color:#172b3a;border:2px solid #172b3a;padding:3px 10px;font-weight:700;font-size:14px}
+h1{font:400 clamp(40px,6vw,68px)/.98 var(--head);letter-spacing:.02em;margin:18px 0 12px}
+h2{font:400 clamp(26px,3.4vw,36px)/1.05 var(--head);letter-spacing:.03em;margin:8px 0 8px}
+p{margin:0 0 10px}
+.lead{font-size:18px;color:var(--muted);max-width:46ch}
+.banner{grid-column:1/-1;background:var(--navy);color:var(--on-navy);border-color:var(--navy);box-shadow:5px 5px 0 var(--teal);
+  display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px 24px;font:400 clamp(20px,3vw,30px)/1.1 var(--head);letter-spacing:.06em;padding:14px 20px}
+.banner i{color:var(--pop);font-style:normal}
+.sc{grid-column:span 7;display:flex;gap:16px;align-items:center}
+.sc.narrow{grid-column:span 5}
+.sc svg{flex:0 0 38%;max-width:200px;height:auto}
+.sc.on{background:var(--soft)}
+.sc.off{background:var(--panel)}
+.burst{position:absolute;top:-4px;right:-4px;width:92px;height:92px;display:grid;place-items:center;transform:rotate(12deg);color:#172b3a;font:400 17px/1 var(--head);text-align:center;letter-spacing:.04em}
+.burst svg{position:absolute;inset:0;width:100%;height:100%;flex:none;max-width:none}
+.burst span{position:relative}
+.btn{display:inline-block;margin-top:6px;background:var(--teal);color:#fff;text-decoration:none;font:400 21px/1 var(--head);letter-spacing:.05em;padding:11px 18px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn:focus-visible,a:focus-visible{outline:3px solid var(--pop);outline-offset:3px}
+.muted{color:var(--muted)}
+.tag{grid-column:span 5;background:var(--sand);display:flex;flex-direction:column;justify-content:center}
+.wide{grid-column:1/-1;background:var(--teal);color:#fff;border-color:var(--ink)}
+.wide h2{color:#fff}
+.bub{position:absolute;background:#fff;color:#172b3a;border:2.5px solid #172b3a;border-radius:18px;padding:7px 12px;font-weight:700;font-size:14px;line-height:1.25;max-width:150px}
+.bub:after{content:"";position:absolute;bottom:-12px;width:16px;height:16px;background:#fff;border-right:2.5px solid #172b3a;border-bottom:2.5px solid #172b3a;transform:rotate(45deg) skew(10deg,10deg)}
+.b1{top:16px;left:14px}.b1:after{left:34px}
+.b2{top:44px;right:14px}.b2:after{right:34px}
+.art svg{position:absolute;inset:0;width:100%;height:100%}
+.foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px;font-size:14px;color:var(--muted)}
+svg .ln{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+svg .fg{fill:var(--panel)}
+@media (max-width:820px){
+  .hero,.art,.sc,.sc.narrow,.tag{grid-column:1/-1}
+  .art{min-height:260px}
+  .sc svg{flex-basis:34%}
+}
+@media (max-width:480px){.sc{flex-direction:column;align-items:flex-start}.sc svg{max-width:150px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="p" viewBox="0 0 60 110">
+    <g class="ln">
+      <path class="fg" d="M8 110c0-34 6-64 22-64s22 30 22 64z"/>
+      <circle class="fg" cx="30" cy="22" r="13"/>
+      <path class="fg" d="M17 22c-1-14 9-19 17-17 8 2 11 9 9 17-4-2-9-6-11-10-3 6-8 9-15 10z"/>
+      <path d="M26 35v8M34 35v8M30 46l-7 22 7 6 7-6z"/>
+    </g>
+  </symbol>
+</svg>
+
+<main class="page">
+  <div class="top"><b>Teacher Practice Studio</b><span>Practise · Reflect · Grow</span></div>
+
+  <div class="grid">
+    <section class="panel hero">
+      <div>
+        <span class="cap">Professional learning through practice</span>
+        <h1>Better conversations begin with practice.</h1>
+      </div>
+      <p class="lead">Prepare for the conversations that matter most in school life.</p>
+    </section>
+
+    <section class="panel art" aria-label="Illustration of two teachers talking at a table">
+      <div class="bub b1">How do I begin this one?</div>
+      <div class="bub b2">Let’s talk it through first.</div>
+      <svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMax meet" role="img" aria-label="Two women in conversation across a table with a laptop">
+        <use href="#p" x="42" y="104" width="78" height="143"/>
+        <use href="#p" x="182" y="104" width="78" height="143"/>
+        <rect x="0" y="212" width="300" height="88" fill="var(--soft)"/>
+        <g class="ln">
+          <path d="M20 212h260"/>
+          <path d="M132 212l7-38h38l7 38z" fill="var(--panel)"/>
+          <path d="M124 212h72"/>
+          <path d="M60 222h50M200 222h40" opacity=".5"/>
+        </g>
+      </svg>
+    </section>
+
+    <div class="panel banner"><span>Human-designed</span><i>/</i><span>AI-supported</span><i>/</i><span>Expert-vetted</span></div>
+
+    <article class="panel sc on">
+      <div class="burst" aria-hidden="true"><svg viewBox="0 0 100 100"><polygon points="50,2 61,20 82,12 79,34 98,42 82,55 92,75 70,74 64,96 50,82 36,96 30,74 8,75 18,55 2,42 21,34 18,12 39,20" fill="#f2c14e" stroke="#172b3a" stroke-width="3"/></svg><span>Open<br>now!</span></div>
+      <svg viewBox="0 0 200 170" role="img" aria-label="A teacher and a parent talking">
+        <use href="#p" x="20" y="40" width="68" height="125"/>
+        <use href="#p" x="112" y="40" width="68" height="125"/>
+        <path class="ln" d="M6 165h188"/>
+        <path class="ln" fill="#fff" d="M60 8h60a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H84l-10 10v-10H60a8 8 0 0 1-8-8V16a8 8 0 0 1 8-8z"/>
+        <path class="ln" d="M64 20h52M64 28h34"/>
+      </svg>
+      <div>
+        <h2>Parent–Teacher Meeting</h2>
+        <p class="muted">A conversation about a student’s confidence and learning.</p>
+        <a class="btn" href="https://script.google.com/macros/s/AKfycbyMyOVhv3L-XVmEsHXK3g8oABEqd0Q9wargOyeJ7GtUe_LUUG-udnacxbpftLIrlLYp4Q/exec" target="_blank" rel="noopener">Start practising!</a>
+      </div>
+    </article>
+
+    <article class="panel sc narrow off">
+      <div class="burst" aria-hidden="true" style="width:84px;height:84px"><svg viewBox="0 0 100 100"><polygon points="50,2 61,20 82,12 79,34 98,42 82,55 92,75 70,74 64,96 50,82 36,96 30,74 8,75 18,55 2,42 21,34 18,12 39,20" fill="#dde8e1" stroke="#172b3a" stroke-width="3"/></svg><span>Soon</span></div>
+      <svg viewBox="0 0 200 170" role="img" aria-label="A teacher and a student">
+        <use href="#p" x="25" y="40" width="68" height="125"/>
+        <use href="#p" x="125" y="92" width="44" height="73"/>
+        <path class="ln" d="M6 165h188"/>
+        <path class="ln" d="M150 70c-6-6-14 2-6 9l6 5 6-5c8-7 0-15-6-9z" fill="none"/>
+      </svg>
+      <div>
+        <h2>Supporting a Student</h2>
+        <p class="muted">A supportive conversation with a student.</p>
+      </div>
+    </article>
+
+    <article class="panel sc off">
+      <div class="burst" aria-hidden="true" style="width:84px;height:84px"><svg viewBox="0 0 100 100"><polygon points="50,2 61,20 82,12 79,34 98,42 82,55 92,75 70,74 64,96 50,82 36,96 30,74 8,75 18,55 2,42 21,34 18,12 39,20" fill="#dde8e1" stroke="#172b3a" stroke-width="3"/></svg><span>Soon</span></div>
+      <svg viewBox="0 0 200 170" role="img" aria-label="Two colleagues talking with a tablet">
+        <use href="#p" x="18" y="50" width="62" height="115"/>
+        <use href="#p" x="120" y="50" width="62" height="115"/>
+        <path class="ln" d="M6 165h188"/>
+        <path class="ln" fill="#fff" d="M88 120h24v32H88z"/>
+        <path class="ln" d="M92 128h16M92 135h16M92 142h10"/>
+        <path class="ln" d="M100 14c-10 0-14 14 0 18m0 6v2"/>
+      </svg>
+      <div>
+        <h2>Working Through a Concern</h2>
+        <p class="muted">A conversation with a colleague.</p>
+      </div>
+    </article>
+
+    <aside class="panel tag">
+      <h2>Choose. Practise. Reflect.</h2>
+      <p class="muted">Try a conversation, then review your feedback.</p>
+    </aside>
+
+    <section class="panel wide">
+      <h2>Designed for relevance. Built for flexibility.</h2>
+      <p>Editable objectives, rubrics and character profiles keep every scenario relevant to changing school needs.</p>
+    </section>
+  </div>
+
+  <div class="foot"><span>Teacher Practice Studio</span><span>Professional learning through thoughtful practice</span></div>
+</main>
+</body>
+</html>
