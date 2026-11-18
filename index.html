@@ -59,6 +59,15 @@ p{margin:0 0 10px}
 .way.vid{flex:1 1 100%;border-color:var(--ink);background:var(--sand)}
 .way.vid>div{border:3px solid var(--ink);background:#000;margin-top:4px}
 .alt-link{font-size:13px;font-weight:700;color:var(--teal-d)}
+button.btn{cursor:pointer;appearance:none;-webkit-appearance:none}
+dialog.warn{border:3px solid var(--ink);background:var(--panel);color:var(--ink);box-shadow:6px 6px 0 var(--ink);padding:0;width:min(440px,92vw);border-radius:4px}
+dialog.warn::backdrop{background:rgba(23,43,58,.65)}
+.warn .in{padding:22px}
+.warn h2{margin:0 0 8px}
+.warn .q{font-weight:700;font-size:18px;margin:12px 0 14px}
+.warn .acts{display:flex;gap:12px;flex-wrap:wrap}
+.warn .btn{margin:0;flex:1 1 140px;text-align:center;font-size:19px}
+.btn.no{background:var(--panel);color:var(--ink)}
 .same{display:inline-block;background:var(--pop);color:#172b3a;border:2px solid #172b3a;padding:2px 10px;font-weight:700;font-size:14px;margin:2px 0 4px;transform:rotate(-1deg)}
 .tag{grid-column:1/-1;background:var(--sand);display:flex;flex-direction:column;justify-content:center}
 .wide{grid-column:1/-1;background:var(--teal);color:#fff;border-color:var(--ink)}
@@ -165,7 +174,7 @@ svg .fg{fill:var(--panel)}
           <div class="way">
             <h3>Face-to-face video</h3>
             <p class="muted">Meet the parent on screen, as in a real meeting. Limited to 10 plays a month.</p>
-            <a class="btn alt" href="https://share.synthesia.io/embeds/videos/d438dc0c-255d-43cc-ae7b-1fd9b140b053" target="_blank" rel="noopener">Start video role play!</a>
+            <button type="button" class="btn alt" id="openVideo">Start video role play!</button>
           </div>
         </div>
       </div>
@@ -184,5 +193,31 @@ svg .fg{fill:var(--panel)}
 
   <div class="foot"><span>Teacher Practice Studio</span><span>Professional learning through thoughtful practice</span></div>
 </main>
+
+<dialog class="warn" id="warn" aria-labelledby="warnTitle">
+  <div class="in">
+    <span class="cap">Heads up!</span>
+    <h2 id="warnTitle">This counts as one play</h2>
+    <p>The video role play is limited to 10 plays a month. Opening it counts as one of those plays, even if you don’t start or finish the conversation.</p>
+    <p class="q">Do you want to continue?</p>
+    <div class="acts">
+      <button type="button" class="btn alt" id="warnYes">Yes, continue</button>
+      <button type="button" class="btn no" id="warnNo" autofocus>No, go back</button>
+    </div>
+  </div>
+</dialog>
+<script>
+(function(){
+  var dlg=document.getElementById('warn');
+  var target='https://share.synthesia.io/embeds/videos/d438dc0c-255d-43cc-ae7b-1fd9b140b053';
+  document.getElementById('openVideo').addEventListener('click',function(){dlg.showModal();});
+  document.getElementById('warnNo').addEventListener('click',function(){dlg.close();});
+  document.getElementById('warnYes').addEventListener('click',function(){
+    dlg.close();
+    window.open(target,'_blank','noopener');
+  });
+  dlg.addEventListener('click',function(e){if(e.target===dlg){dlg.close();}});
+})();
+</script>
 </body>
 </html>
