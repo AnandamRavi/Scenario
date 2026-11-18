@@ -49,6 +49,16 @@ p{margin:0 0 10px}
 .btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
 .btn:focus-visible,a:focus-visible{outline:3px solid var(--pop);outline-offset:3px}
 .muted{color:var(--muted)}
+.ways{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.way{flex:1 1 190px;background:var(--panel);border:3px solid var(--ink);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.way h3{font:400 22px/1 var(--head);letter-spacing:.04em;margin:0}
+.way p{font-size:14px;margin:0 0 4px}
+.way .btn{margin-top:auto;font-size:18px;padding:9px 12px;text-align:center}
+.btn.alt{background:var(--pop);color:#172b3a}
+.way.vid{flex:1 1 100%;border-color:var(--ink);background:var(--sand)}
+.way.vid>div{border:3px solid var(--ink);background:#000;margin-top:4px}
+.alt-link{font-size:13px;font-weight:700;color:var(--teal-d)}
+.same{display:inline-block;background:var(--pop);color:#172b3a;border:2px solid #172b3a;padding:2px 10px;font-weight:700;font-size:14px;margin:2px 0 4px;transform:rotate(-1deg)}
 .tag{grid-column:span 5;background:var(--sand);display:flex;flex-direction:column;justify-content:center}
 .wide{grid-column:1/-1;background:var(--teal);color:#fff;border-color:var(--ink)}
 .wide h2{color:#fff}
@@ -122,7 +132,19 @@ svg .fg{fill:var(--panel)}
       <div>
         <h2>Parent–Teacher Meeting</h2>
         <p class="muted">A conversation about a student’s confidence and learning.</p>
-        <a class="btn" href="https://script.google.com/macros/s/AKfycbyMyOVhv3L-XVmEsHXK3g8oABEqd0Q9wargOyeJ7GtUe_LUUG-udnacxbpftLIrlLYp4Q/exec" target="_blank" rel="noopener">Start practising!</a>
+        <span class="same">Same scenario, two ways to practise</span>
+        <div class="ways">
+          <div class="way">
+            <h3>Text chat</h3>
+            <p class="muted">Reply in a text-message style conversation. Play as many times as you like.</p>
+            <a class="btn" href="https://script.google.com/macros/s/AKfycbyMyOVhv3L-XVmEsHXK3g8oABEqd0Q9wargOyeJ7GtUe_LUUG-udnacxbpftLIrlLYp4Q/exec" target="_blank" rel="noopener">Start text chat!</a>
+          </div>
+          <div class="way">
+            <h3>Face-to-face video</h3>
+            <p class="muted">Meet the parent on screen, as in a real meeting. Limited to 10 plays a month.</p>
+            <a class="btn alt" href="https://share.synthesia.io/embeds/videos/d438dc0c-255d-43cc-ae7b-1fd9b140b053" target="_blank" rel="noopener">Start video role play!</a>
+          </div>
+        </div>
       </div>
     </article>
 
