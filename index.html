@@ -37,7 +37,8 @@ p{margin:0 0 10px}
 .banner{grid-column:1/-1;background:var(--navy);color:var(--on-navy);border-color:var(--navy);box-shadow:5px 5px 0 var(--teal);
   display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px 24px;font:400 clamp(20px,3vw,30px)/1.1 var(--head);letter-spacing:.06em;padding:14px 20px}
 .banner i{color:var(--pop);font-style:normal}
-.sc{grid-column:span 7;display:flex;gap:16px;align-items:center}
+.sc{grid-column:1/-1;display:flex;gap:24px;align-items:center}
+.sc>div:not(.burst){flex:1;padding-right:70px}
 .sc.narrow{grid-column:span 5}
 .sc svg{flex:0 0 38%;max-width:200px;height:auto}
 .sc.on{background:var(--soft)}
@@ -59,7 +60,7 @@ p{margin:0 0 10px}
 .way.vid>div{border:3px solid var(--ink);background:#000;margin-top:4px}
 .alt-link{font-size:13px;font-weight:700;color:var(--teal-d)}
 .same{display:inline-block;background:var(--pop);color:#172b3a;border:2px solid #172b3a;padding:2px 10px;font-weight:700;font-size:14px;margin:2px 0 4px;transform:rotate(-1deg)}
-.tag{grid-column:span 5;background:var(--sand);display:flex;flex-direction:column;justify-content:center}
+.tag{grid-column:1/-1;background:var(--sand);display:flex;flex-direction:column;justify-content:center}
 .wide{grid-column:1/-1;background:var(--teal);color:#fff;border-color:var(--ink)}
 .wide h2{color:#fff}
 .bub{position:absolute;background:#fff;color:#172b3a;border:2.5px solid #172b3a;border-radius:18px;padding:7px 12px;font-weight:700;font-size:14px;line-height:1.25;max-width:150px}
@@ -75,6 +76,7 @@ svg .fg{fill:var(--panel)}
   .art{min-height:260px}
   .sc svg{flex-basis:34%}
 }
+@media (max-width:820px){.sc>div:not(.burst){padding-right:0}}
 @media (max-width:480px){.sc{flex-direction:column;align-items:flex-start}.sc svg{max-width:150px}}
 </style>
 </head>
@@ -145,36 +147,6 @@ svg .fg{fill:var(--panel)}
             <a class="btn alt" href="https://share.synthesia.io/embeds/videos/d438dc0c-255d-43cc-ae7b-1fd9b140b053" target="_blank" rel="noopener">Start video role play!</a>
           </div>
         </div>
-      </div>
-    </article>
-
-    <article class="panel sc narrow off">
-      <div class="burst" aria-hidden="true" style="width:84px;height:84px"><svg viewBox="0 0 100 100"><polygon points="50,2 61,20 82,12 79,34 98,42 82,55 92,75 70,74 64,96 50,82 36,96 30,74 8,75 18,55 2,42 21,34 18,12 39,20" fill="#dde8e1" stroke="#172b3a" stroke-width="3"/></svg><span>Soon</span></div>
-      <svg viewBox="0 0 200 170" role="img" aria-label="A teacher and a student">
-        <use href="#p" x="25" y="40" width="68" height="125"/>
-        <use href="#p" x="125" y="92" width="44" height="73"/>
-        <path class="ln" d="M6 165h188"/>
-        <path class="ln" d="M150 70c-6-6-14 2-6 9l6 5 6-5c8-7 0-15-6-9z" fill="none"/>
-      </svg>
-      <div>
-        <h2>Supporting a Student</h2>
-        <p class="muted">A supportive conversation with a student.</p>
-      </div>
-    </article>
-
-    <article class="panel sc off">
-      <div class="burst" aria-hidden="true" style="width:84px;height:84px"><svg viewBox="0 0 100 100"><polygon points="50,2 61,20 82,12 79,34 98,42 82,55 92,75 70,74 64,96 50,82 36,96 30,74 8,75 18,55 2,42 21,34 18,12 39,20" fill="#dde8e1" stroke="#172b3a" stroke-width="3"/></svg><span>Soon</span></div>
-      <svg viewBox="0 0 200 170" role="img" aria-label="Two colleagues talking with a tablet">
-        <use href="#p" x="18" y="50" width="62" height="115"/>
-        <use href="#p" x="120" y="50" width="62" height="115"/>
-        <path class="ln" d="M6 165h188"/>
-        <path class="ln" fill="#fff" d="M88 120h24v32H88z"/>
-        <path class="ln" d="M92 128h16M92 135h16M92 142h10"/>
-        <path class="ln" d="M100 14c-10 0-14 14 0 18m0 6v2"/>
-      </svg>
-      <div>
-        <h2>Working Through a Concern</h2>
-        <p class="muted">A conversation with a colleague.</p>
       </div>
     </article>
 
